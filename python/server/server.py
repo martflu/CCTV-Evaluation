@@ -15,16 +15,16 @@ class Home:
         return open(os.path.join(HTML_DIR, u'index.html'))
 
     @cherrypy.expose
-    def upload(self, myFile):
+    def upload(self, video_file):
             all_data = ''
             size = 0
             while True:
-                data = myFile.file.read(1024)
+                data = video_file.file.read(1024)
                 all_data += data
                 if not data:
                     break
                 size += len(data)
-            with open(os.path.join(UPLOAD_DIR, myFile.filename), 'w') as f:
+            with open(os.path.join(UPLOAD_DIR, video_file.filename), 'w') as f:
                 f.write(all_data)
 
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')

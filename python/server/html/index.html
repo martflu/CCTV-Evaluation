@@ -1,15 +1,37 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="en-US">
 	<head profile="http://www.w3.org/2005/10/profile">
+		<title>CCTV-Evaluation</title>
 		<link rel="icon" type="image/png" href="/static/img/favicon.ico">
-	
+		<link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<h2>Upload a file</h2>
-        <form action="upload" method="post" enctype="multipart/form-data">
-        	filename: <input type="file" name="myFile" /><br /><input type="submit" />
-        </form>
-        <h2>Download a file</h2>
-        <a href='download'>This one</a>
+		<div class="navbar">
+			<div class="navbar-inner">
+				<a class="brand" href="/">CCTV-Evaluation</a>
+			</div>
+		</div>
+		<div class="container">
+			<div class="page-header">
+				<h1>This page helps you evaluate your CCTV footage <small>upload one of your videos to get started</small></h1>
+			</div>
+			<form action="upload" method="post" enctype="multipart/form-data">
+				<div id="file_upload" class="fileupload fileupload-new" data-provides="fileupload">
+					<div class="input-append">
+						<div class="uneditable-input span3"><i class="icon-file fileupload-exists"></i> <span id="file_upload_name" class="fileupload-preview"></span></div>
+						<span class="btn btn-file">
+							<span class="fileupload-new">Select file</span>
+							<span class="fileupload-exists">Change</span><input id="video_file" type="file" name="video_file"/>
+						</span>
+					</div>
+				</div>
+        	</form>
+        	<button id="videoUploadButton" class="btn btn-success fileupload-exists" disabled>Upload</button>
+        	
+		</div>
+		<script src="http://code.jquery.com/jquery.js"></script>
+		<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+		<script src="/static/js/server.js"></script>
 	</body>
 </html>
