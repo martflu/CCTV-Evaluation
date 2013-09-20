@@ -215,3 +215,4 @@ pip-log.txt
 .mr.developer.cfg
 Installation/bin
 Test Data
+python/server/upload

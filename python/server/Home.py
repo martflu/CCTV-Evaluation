@@ -3,16 +3,30 @@ import os
 
 file_path = os.getcwd()
 
+HTML_DIR = 'html'
+UPLOAD_DIR = 'upload'
+
 class Home:
 
-    HTML_DIR = 'html'
+
     
     @cherrypy.expose
     def index(self):
-        return open(os.path.join(self.HTML_DIR, u'index.html'))
+        return open(os.path.join(HTML_DIR, u'index.html'))
 
+    @cherrypy.expose
+    def upload(self, myFile):
+            all_data = ''
+            size = 0
+            while True:
+                data = myFile.file.read(1024)
+                all_data += data
+                if not data:
+                    break
+                size += len(data)
+            with open(os.path.join(UPLOAD_DIR, myFile.filename), 'w') as f:
+                f.write(all_data)
 
-import os.path
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 
 if __name__ == '__main__':
