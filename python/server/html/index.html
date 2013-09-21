@@ -25,7 +25,7 @@
 								<div class="uneditable-input span3"><i class="icon-file fileupload-exists"></i> <span id="file_upload_name" class="fileupload-preview"></span></div>
 								<span class="btn btn-file">
 									<span class="fileupload-new">Select file</span>
-									<span class="fileupload-exists">Change</span><input id="video_file" type="file" name="video_file"/>
+									<span class="fileupload-exists">Change</span><input id="video_file" type="file" accept="video/*" name="video_file"/>
 								</span>
 							</div>
 						</div>
@@ -38,20 +38,57 @@
         			<button id="video_upload_button" class="btn btn-success fileupload-exists" disabled>Evaluate</button>
 	        	</div>
 	        	<div class="span2.5">
-					<div id="file_upload_error" class="alert alert-error" style="visibility: hidden;">
+					<div id="file_upload_error" class="alert alert-error" style="opacity: 0;">
 						<strong id="file_upload_error_text"></strong>
 					</div>	        		
 	        	</div>
         	</div>
         	<br>
-        	<div class="row">
-				<div class="span4">
-		        	<div id="progress" class="progress progress-striped active" style="visibility: hidden;">
-		        		<div id="progress_bar" class="bar bar-info" style="width: 0%;"></div>
-					</div>
-				</div>
-			</div>
-        	<hr>
+        	<table class="table table-condensed">
+        		<thead>
+	        		<tr>
+					    <th width="5%">#</th>
+					    <th width="10%">task</th>
+					    <th>progress</th>
+	  				</tr>
+  				</thead>
+  				<tbody>
+	  				<tr>
+					    <td>
+					    	<span class="badge">1</span>
+				    	</td>
+					    <td>upload</td>
+					    <td>
+					    	<div id="progress_upload" class="progress progress-success">
+			        			<div id="progress_upload_bar" class="bar"></div>
+							</div>
+						</td>
+	  				</tr>
+	  				<tr>
+					    <td>
+					    	<span class="badge">2</span>
+				    	</td>
+					    <td>convert</td>
+					    <td>
+					    	<div id="progress_convert" class="progress progress-success">
+			        			<div id="progress_convert_bar" class="bar"></div>
+							</div>
+						</td>
+	  				</tr>
+	  				<tr>
+					    <td>
+					    	<span class="badge">3</span>
+				    	</td>
+					    <td>evaluate</td>
+					    <td>
+					    	<div id="progress_evaluate" class="progress progress-success">
+			        			<div id="progress_evaluate_bar" class="bar"></div>
+							</div>
+						</td>
+	  				</tr>
+  				</tbody>
+    		</table>
+        	
 		</div>
 
 		<div class="navbar navbar-fixed-bottom">

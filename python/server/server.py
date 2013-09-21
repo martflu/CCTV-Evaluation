@@ -16,6 +16,7 @@ class Home:
 
     @cherrypy.expose
     def upload(self, video_file):
+            self.upload_progress = 0
             all_data = ''
             size = 0
             while True:
