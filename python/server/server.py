@@ -8,7 +8,7 @@ UPLOAD_DIR = 'upload'
 
 class Home:
 
-
+    upload_progress = 0
     
     @cherrypy.expose
     def index(self):
@@ -19,13 +19,19 @@ class Home:
             all_data = ''
             size = 0
             while True:
-                data = video_file.file.read(1024)
+                data = video_file.file.read(10240)
                 all_data += data
                 if not data:
                     break
                 size += len(data)
+                self.upload_progress = size
             with open(os.path.join(UPLOAD_DIR, video_file.filename), 'w') as f:
                 f.write(all_data)
+                
+    @cherrypy.expose
+    def uploadprogress(self):
+        return str(self.upload_progress)
+        
 
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 

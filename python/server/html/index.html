@@ -4,6 +4,7 @@
 		<title>CCTV-Evaluation</title>
 		<link rel="icon" type="image/png" href="/static/img/favicon.ico">
 		<link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+		<link href="/static/css/server.css" rel="stylesheet">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
@@ -16,20 +17,57 @@
 			<div class="page-header">
 				<h1>This page helps you evaluate your CCTV footage <small>upload one of your videos to get started</small></h1>
 			</div>
-			<form action="upload" method="post" enctype="multipart/form-data">
-				<div id="file_upload" class="fileupload fileupload-new" data-provides="fileupload">
-					<div class="input-append">
-						<div class="uneditable-input span3"><i class="icon-file fileupload-exists"></i> <span id="file_upload_name" class="fileupload-preview"></span></div>
-						<span class="btn btn-file">
-							<span class="fileupload-new">Select file</span>
-							<span class="fileupload-exists">Change</span><input id="video_file" type="file" name="video_file"/>
-						</span>
+			<div class="row">
+				<div class="span4">
+					<form id="file_upload_form">
+						<div id="file_upload" class="fileupload fileupload-new" data-provides="fileupload">
+							<div class="input-append">
+								<div class="uneditable-input span3"><i class="icon-file fileupload-exists"></i> <span id="file_upload_name" class="fileupload-preview"></span></div>
+								<span class="btn btn-file">
+									<span class="fileupload-new">Select file</span>
+									<span class="fileupload-exists">Change</span><input id="video_file" type="file" name="video_file"/>
+								</span>
+							</div>
+						</div>
+		        	</form>
+	        	</div>
+			</div>
+        	
+        	<div class="row">
+				<div class="span1">
+        			<button id="video_upload_button" class="btn btn-success fileupload-exists" disabled>Evaluate</button>
+	        	</div>
+	        	<div class="span2.5">
+					<div id="file_upload_error" class="alert alert-error" style="visibility: hidden;">
+						<strong id="file_upload_error_text"></strong>
+					</div>	        		
+	        	</div>
+        	</div>
+        	<br>
+        	<div class="row">
+				<div class="span4">
+		        	<div id="progress" class="progress progress-striped active" style="visibility: hidden;">
+		        		<div id="progress_bar" class="bar bar-info" style="width: 0%;"></div>
 					</div>
 				</div>
-        	</form>
-        	<button id="videoUploadButton" class="btn btn-success fileupload-exists" disabled>Upload</button>
-        	
+			</div>
+        	<hr>
 		</div>
+
+		<div class="navbar navbar-fixed-bottom">
+			<div class="navbar-inner console-bar">
+				 
+				<div class="pull-right">
+		        	<a href="#">
+						<img class="terminal-icon" id="terminal_icon" src="/static/img/terminal.png" alt="terminal">		        			
+					</a>
+		        </div>
+		        
+			</div>
+			
+        	<pre id="console" class="pre-scrollable horizontal-scroll" style="display: none;"></pre>
+		</div>
+
 		<script src="http://code.jquery.com/jquery.js"></script>
 		<script src="/static/bootstrap/js/bootstrap.min.js"></script>
 		<script src="/static/js/server.js"></script>
