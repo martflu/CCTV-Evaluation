@@ -69,7 +69,7 @@ function start() {
 				log('file upload client side: ' + bytesToSize(done) + ' of ' + bytesToSize(total) + ' = ' + percent + '% ' + bytesToSize(total - done) + ' missing');
 				if (percent === 100) {
 					log("should at least start the interval");
-					interval = setInterval(get_upload_progress, 100);					
+					interval = setInterval(get_upload_progress, 100);
 				}
 			};
 		}
