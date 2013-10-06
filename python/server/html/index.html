@@ -44,7 +44,7 @@
 	        	</div>
         	</div>
         	<br>
-        	<table class="table table-condensed">
+        	<table id="task_table" class="table table-condensed" style="display: none;">
         		<thead>
 	        		<tr>
 					    <th width="5%">#</th>
@@ -55,7 +55,7 @@
   				<tbody>
 	  				<tr>
 					    <td>
-					    	<span class="badge">1</span>
+					    	<span id="badge_upload" class="badge">1</span>
 				    	</td>
 					    <td>upload</td>
 					    <td>
@@ -66,23 +66,23 @@
 	  				</tr>
 	  				<tr>
 					    <td>
-					    	<span class="badge">2</span>
+					    	<span id="badge_conversion" class="badge">2</span>
 				    	</td>
 					    <td>convert</td>
 					    <td>
-					    	<div id="progress_convert" class="progress progress-success">
-			        			<div id="progress_convert_bar" class="bar"></div>
+					    	<div id="progress_conversion" class="progress progress-success">
+			        			<div id="progress_conversion_bar" class="bar"></div>
 							</div>
 						</td>
 	  				</tr>
 	  				<tr>
 					    <td>
-					    	<span class="badge">3</span>
+					    	<span id="badge_evaluation" class="badge">3</span>
 				    	</td>
 					    <td>evaluate</td>
 					    <td>
-					    	<div id="progress_evaluate" class="progress progress-success">
-			        			<div id="progress_evaluate_bar" class="bar"></div>
+					    	<div id="progress_evaluation" class="progress progress-success">
+			        			<div id="progress_evaluation_bar" class="bar"></div>
 							</div>
 						</td>
 	  				</tr>

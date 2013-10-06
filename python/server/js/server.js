@@ -35,9 +35,7 @@ function start() {
 
 	$('#video_upload_button').click(function() {
 		$("#file_upload_form").submit();
-		$('#video_upload_button').prop('disabled', true);
-		$('#file_upload').fileupload('reset');
-
+		upload_start();
 	});
 
 	$('#file_upload_form').submit(function(e) {
@@ -56,7 +54,8 @@ function start() {
 			clearInterval(interval);
 			var file_name = file.name;
 			$.get("/convert?filename=" + file_name, function(data) {
-				$(".result").html(data);
+				upload_finished();
+				interval = setInterval(get_conversion_progress, 100);
 			});
 
 		}, false);
@@ -68,8 +67,7 @@ function start() {
 				set_progress_bar_percent($('#progress_upload_bar'), percent / 2);
 				log('file upload client side: ' + bytesToSize(done) + ' of ' + bytesToSize(total) + ' = ' + percent + '% ' + bytesToSize(total - done) + ' missing');
 				if (percent === 100) {
-					log("should at least start the interval");
-					interval = setInterval(get_upload_progress, 100);
+					interval = setInterval(get_upload_progress, 500);
 				}
 			};
 		}
@@ -84,6 +82,18 @@ function start() {
 		$('#console').scrollTop($('#console')[0].scrollHeight);
 	});
 
+	function get_conversion_progress() {
+		$.get("/conversionprogress", function(data) {
+			var percent = parseFloat(data);
+			set_progress_bar_percent($('#progress_conversion_bar'), percent);
+			log('video to frames conversion: ' + percent + '%');
+			if (percent === 100) {
+				clearInterval(interval);
+				conversion_finished();
+			}
+		});
+	}
+
 	function get_upload_progress() {
 		$.get("/uploadprogress", function(data) {
 			upload_progress = data;
@@ -93,6 +103,37 @@ function start() {
 		});
 	}
 
+}
+
+function upload_start() {
+	$('#video_upload_button').prop('disabled', true);
+	$('#file_upload').fileupload('reset');
+	$('#badge_upload').addClass('badge-info');
+	$('#task_table').show();
+}
+
+function upload_finished() {
+	$('#badge_upload').removeClass('badge-info');
+	$('#badge_upload').addClass('badge-success');
+	conversion_start();
+}
+
+function conversion_start() {
+	$('#badge_conversion').addClass('badge-info');
+}
+
+function conversion_finished() {
+	$('#badge_conversion').removeClass('badge-info');
+	$('#badge_conversion').addClass('badge-success');
+	evaluation_start();
+}
+
+function evaluation_start() {
+	$('#badge_evaluation').addClass('badge-info');
+}
+
+function evaluation_finished() {
+	
 }
 
 function log(message) {

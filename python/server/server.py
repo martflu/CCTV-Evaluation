@@ -1,8 +1,14 @@
 import cherrypy
 import subprocess
+import cv2
 import os
 import shutil
 import time
+from threading import Thread
+import re
+from decimal import Decimal
+
+
 
 file_path = os.getcwd()
 
@@ -12,6 +18,9 @@ UPLOAD_DIR = 'upload'
 class Home:
 
     upload_progress = 0
+    frames_per_second = 5
+    video_length_seconds = 0
+    conversion_thread = None
     
     @cherrypy.expose
     def index(self):
@@ -39,10 +48,25 @@ class Home:
 
     @cherrypy.expose
     def convert(self, filename):
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        
-        self.start_conversion(filepath)
+        input_path = os.path.join(UPLOAD_DIR, filename)
+        self.conversion_thread = Thread(target = self.start_conversion, args = (input_path, ))
+        self.video_length_seconds = self.get_video_length_seconds(input_path)
+        self.conversion_thread.start()
 
+ 
+    def get_video_length_seconds(self, input_path):
+        ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
+        process = subprocess.Popen([ffmpeg, '-i', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = process.communicate()
+        matches = re.search(r"Duration:\s{1}(?P<hours>\d+?):(?P<minutes>\d+?):(?P<seconds>\d+\.\d+?),", stdout, re.DOTALL).groupdict()
+        hours = Decimal(matches['hours'])
+        minutes = Decimal(matches['minutes'])
+        seconds = Decimal(matches['seconds'])
+        total = 0
+        total += 60 * 60 * hours
+        total += 60 * minutes
+        total += seconds
+        return total
 
     def start_conversion(self, input_path):
         output_path = 'frames'
@@ -53,10 +77,24 @@ class Home:
         os.makedirs(output_path)
         input_path = os.path.abspath(input_path)
         output_path = os.path.abspath(output_path)
+        
         ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
-        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', '5', os.path.join(output_path, 'frame-%6d.jpg')], stdout=subprocess.PIPE)
+        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%6d.jpg')], stdout=subprocess.PIPE)
         process.wait()
-
+        
+    @cherrypy.expose
+    def conversionprogress(self):
+        output_path = 'frames'
+        if os.path.exists(output_path):
+            if self.conversion_thread.isAlive():
+                path, dirs, files = os.walk(output_path).next()
+                number_of_frames = len(files)
+                percent = (number_of_frames / (self.video_length_seconds * self.frames_per_second)) * 100
+                return str(percent)
+            else:
+                return "100"
+        else:
+            return "0"
     
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 
