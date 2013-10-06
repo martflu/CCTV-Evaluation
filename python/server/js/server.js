@@ -90,6 +90,9 @@ function start() {
 			if (percent === 100) {
 				clearInterval(interval);
 				conversion_finished();
+				$.get("/evaluate", function(data) {
+					log('evluation started');
+				});
 			}
 		});
 	}
@@ -102,7 +105,6 @@ function start() {
 			log('file upload server side: ' + bytesToSize(upload_progress) + ' of ' + bytesToSize(file_size) + ' = ' + percent + '% ' + bytesToSize(file_size - upload_progress) + ' missing');
 		});
 	}
-
 }
 
 function upload_start() {

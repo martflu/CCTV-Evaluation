@@ -1,6 +1,7 @@
 import cherrypy
 import subprocess
 import cv2
+import cv2.cv as cv
 import os
 import shutil
 import time
@@ -79,7 +80,7 @@ class Home:
         output_path = os.path.abspath(output_path)
         
         ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
-        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%6d.jpg')], stdout=subprocess.PIPE)
+        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%8d.jpg')], stdout=subprocess.PIPE)
         process.wait()
         
     @cherrypy.expose
@@ -96,6 +97,44 @@ class Home:
         else:
             return "0"
     
+    @cherrypy.expose
+    def evaluate(self):
+        output_path = 'frames'
+        if os.path.exists(output_path):
+            for root, dirs, files in os.walk(output_path):
+                for file in files:
+                    file_name = os.path.join(root, file)
+                    if file.endswith(".jpg"):
+                        image = cv2.imread(file_name)
+                        image = cv2.cvtColor(image, cv.CV_BGR2GRAY)
+                        image = cv2.equalizeHist(image)
+                        rects = self.detect(image)
+                        img_out = image.copy()
+                        self.draw_rects(img_out, rects, (0, 255, 0))
+                        cv2.imwrite(file_name + 'out.jpg', img_out)
+        else:
+            return "error" 
+               
+        return "evaluate"
+
+    def draw_rects(self, img, rects, color):
+        for x1, y1, x2, y2 in rects:
+            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+
+    def detect(self, img):
+        scale_factor = 1.3
+        min_neighbors = 3
+        min_size = (20, 20)
+        flags = cv.CV_HAAR_SCALE_IMAGE
+        cascade_function = os.path.abspath(os.path.join('classifier', 'haarcascade_frontalface_alt_tree.xml'))
+        cascade = cv2.CascadeClassifier(cascade_function)
+        rects = cascade.detectMultiScale(img, scaleFactor = scale_factor, minNeighbors = min_neighbors, minSize = min_size, flags = flags)
+        if len(rects) == 0:
+            return []
+        else:
+            rects[:, 2:] += rects[:, :2]
+            return rects
+        
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 
 if __name__ == '__main__':
