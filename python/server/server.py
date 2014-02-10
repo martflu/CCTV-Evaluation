@@ -12,6 +12,7 @@ import re
 from decimal import Decimal
 from os import listdir
 from os.path import isfile, join
+import numpy
 
 
 file_path = os.getcwd()
@@ -121,7 +122,7 @@ class Home:
         output_path = os.path.abspath(output_path)
         
         ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
-        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%8d.jpg')], stdout=subprocess.PIPE)
+        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%8d.png')], stdout=subprocess.PIPE)
         process.wait()
         
     @cherrypy.expose
@@ -150,36 +151,111 @@ class Home:
             else:
                 frames_count += 1
         percent = int(evaluation_count / float(frames_count) * 100)
-        print frames_count, evaluation_count, evaluation_count / frames_count, percent
         return str(percent)
     
     @cherrypy.expose
     def evaluate(self):
-        self.evaluation_data['detected'] = []
+        f = 'found'
+        m = 'missed'
+        a = 'all'
+        for key in [f, m, a]:
+            self.evaluation_data[key] = {}
+            self.evaluation_data[key]['detected'] = []
+            self.evaluation_data[key]['faces'] = []
+            self.evaluation_data[key]['area'] = []
+            self.evaluation_data[key]['min'] = []
+            self.evaluation_data[key]['max'] = []
+            self.evaluation_data[key]['mean'] = []
+        
         output_path = 'frames'
         if os.path.exists(output_path):
             for root, dirs, files in os.walk(output_path):
                 for file in files:
                     file_name = os.path.join(root, file)
-                    if file.endswith(".jpg"):
+                    if file.endswith(".png"):
                         image = cv2.imread(file_name)
                         image = cv2.cvtColor(image, cv.CV_BGR2GRAY)
-                        image = cv2.equalizeHist(image)
+                        # image = cv2.equalizeHist(image) # this seems to not improve the results
                         rects = self.detect(image)
                         img_out = image.copy()
                         img_out = cv2.cvtColor(img_out, cv.CV_GRAY2RGB)
                         success = len(rects) != 0
                         self.draw_rects(img_out, rects, (0, 255, 0))
                         success_string = str(success).lower()
-                        self.evaluation_data['detected'].append(success)
-                        cv2.imwrite(file_name[:-4] + '_' + success_string + '.jpg', img_out)
+                        cv2.imwrite(file_name[:-4] + '_' + success_string + '.png', img_out)
+                        
+                        image_min, image_mean, image_max = self.analyze_image(image)
+                        faces = len(rects)
+                        area = self.get_average_rect_area(rects)
+                        self.evaluation_data['all']['detected'].append(success)
+                        self.evaluation_data['all']['faces'].append(faces)
+                        self.evaluation_data['all']['area'].append(area)
+                        self.evaluation_data['all']['min'].append(image_min)
+                        self.evaluation_data['all']['mean'].append(image_mean)
+                        self.evaluation_data['all']['max'].append(image_max)
+                        if success:
+                            self.evaluation_data['found']['detected'].append(success)
+                            self.evaluation_data['found']['faces'].append(faces)
+                            self.evaluation_data['found']['area'].append(area)
+                            self.evaluation_data['found']['min'].append(image_min)
+                            self.evaluation_data['found']['mean'].append(image_mean)
+                            self.evaluation_data['found']['max'].append(image_max)
+                        else:
+                            self.evaluation_data['missed']['detected'].append(success)
+                            self.evaluation_data['missed']['faces'].append(faces)
+                            self.evaluation_data['missed']['area'].append(area)
+                            self.evaluation_data['missed']['min'].append(image_min)
+                            self.evaluation_data['missed']['mean'].append(image_mean)
+                            self.evaluation_data['missed']['max'].append(image_max)
         else:
-            return "error"   
+            return "error"
+        self.calculate_video_evaluation_data()
         return "evaluation"
 
+    def analyze_image(self, image):
+        height, width = image.shape
+        image_min = image[0][0]
+        image_max = image[0][0]
+        for y in range(0, height):
+            for x in range(0, width):
+                if image[y][x] < image_min:
+                    image_min = image[y][x]
+                if image[y][x] > image_max:
+                    image_max = image[y][x]
+        image_mean = numpy.mean(image)
+        return image_min, image_mean, image_max
+        
+
+    def calculate_video_evaluation_data(self):
+        f = 'found'
+        m = 'missed'
+        a = 'all'
+        for key in [f, m, a]:
+            self.evaluation_data[key]['mean_detected'] = numpy.mean(self.evaluation_data[key]['detected'])
+            self.evaluation_data[key]['mean_faces'] = numpy.mean(self.evaluation_data[key]['faces'])
+            self.evaluation_data[key]['mean_area'] = numpy.mean(self.evaluation_data[key]['area'])
+            self.evaluation_data[key]['mean_min'] = numpy.mean(self.evaluation_data[key]['min'])
+            self.evaluation_data[key]['mean_mean'] = numpy.mean(self.evaluation_data[key]['mean'])
+            self.evaluation_data[key]['mean_max'] = numpy.mean(self.evaluation_data[key]['max'])
+        pprint(self.evaluation_data)
+     
     def draw_rects(self, img, rects, color):
         for x1, y1, x2, y2 in rects:
             cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+    
+    def get_average_rect_area(self, rects):
+        if len(rects) == 0:
+            return 0
+        rect_areas = []
+        for rect in rects:
+            rect_areas.append(self.get_rect_area(rect))
+        return numpy.mean(rect_areas)
+            
+    def get_rect_area(self, rect):
+        x1, y1, x2, y2 = rect
+        w = x2 - x1
+        h = y2 - y1
+        return w * h
 
     def detect(self, img):
         scale_factor = 1.3
