@@ -55,7 +55,9 @@ function start() {
 			var file_name = file.name;
 			$.get("/convert?filename=" + file_name, function(data) {
 				upload_finished();
-				interval = setInterval(get_conversion_progress, 100);
+				setTimeout(function() {
+					interval = setInterval(get_conversion_progress, 100);
+				}, 1000);
 			});
 
 		}, false);
@@ -91,11 +93,25 @@ function start() {
 				clearInterval(interval);
 				conversion_finished();
 				$.get("/evaluate", function(data) {
-					log('evluation started');
+					log('evaluation completed');
 				});
+				interval = setInterval(get_evaluation_progress, 1000);
 			}
 		});
 	}
+
+
+	function get_evaluation_progress() {
+		$.get("/evaluationprogress", function(data) {
+			var percent = parseFloat(data);
+			set_progress_bar_percent($('#progress_evaluation_bar'), percent);
+			log('video to frames conversion: ' + percent + '%');
+			if (percent === 100) {
+				clearInterval(interval);
+				evaluation_finished();
+			}
+		});
+	}	
 
 	function get_upload_progress() {
 		$.get("/uploadprogress", function(data) {
@@ -135,7 +151,8 @@ function evaluation_start() {
 }
 
 function evaluation_finished() {
-	
+	$('#badge_evaluation').removeClass('badge-info');
+	$('#badge_evaluation').addClass('badge-success');
 }
 
 function log(message) {

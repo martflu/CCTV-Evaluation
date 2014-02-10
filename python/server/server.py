@@ -1,14 +1,17 @@
 import cherrypy
 import subprocess
+import json
 import cv2
 import cv2.cv as cv
 import os
 import shutil
+from pprint import pprint
 import time
 from threading import Thread
 import re
 from decimal import Decimal
-
+from os import listdir
+from os.path import isfile, join
 
 
 file_path = os.getcwd()
@@ -22,6 +25,7 @@ class Home:
     frames_per_second = 5
     video_length_seconds = 0
     conversion_thread = None
+    evaluation_data = {}
     
     @cherrypy.expose
     def index(self):
@@ -50,8 +54,10 @@ class Home:
     @cherrypy.expose
     def convert(self, filename):
         input_path = os.path.join(UPLOAD_DIR, filename)
-        self.conversion_thread = Thread(target = self.start_conversion, args = (input_path, ))
+        self.conversion_thread = Thread(target=self.start_conversion, args=(input_path,))
         self.video_length_seconds = self.get_video_length_seconds(input_path)
+        self.get_video_format(input_path)
+        self.get_stream_data(input_path)
         self.conversion_thread.start()
 
  
@@ -68,6 +74,41 @@ class Home:
         total += 60 * minutes
         total += seconds
         return total
+    
+    def get_video_format(self, input_path):
+        import ConfigParser
+        import StringIO
+        ffprobe = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffprobe.exe'))
+        process = subprocess.Popen([ffprobe, '-show_format', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = process.communicate()
+        format_list = stdout.split('\r\n')
+        for entry in format_list:
+            try:
+                key, value = entry.split('=')
+                if len(entry.split('=')) == 2:
+                    self.evaluation_data[key] = value
+            except:
+                print
+        
+    def get_stream_data(self, input_path):
+        import ConfigParser
+        import StringIO
+        ffprobe = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffprobe.exe'))
+        process = subprocess.Popen([ffprobe, '-show_streams', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = process.communicate()
+        streams = stdout.split('[/STREAM]')[0:-1]
+        self.evaluation_data['streams'] = []
+        for stream in streams:
+            stream_list = stream.split('\r\n')
+            stream_data = {}
+            for entry in stream_list:
+                try:
+                    key, value = entry.split('=')
+                    if len(entry.split('=')) == 2:
+                        stream_data[key] = value
+                except:
+                    print
+            self.evaluation_data['streams'].append(stream_data)
 
     def start_conversion(self, input_path):
         output_path = 'frames'
@@ -98,7 +139,23 @@ class Home:
             return "0"
     
     @cherrypy.expose
+    def evaluationprogress(self):
+        path = 'frames'
+        all_files = [f for f in listdir(path) if isfile(join(path, f))]
+        frames_count = 0
+        evaluation_count = 0
+        for filename in all_files:
+            if any(str in filename for str in ['true', 'false']):
+                evaluation_count += 1
+            else:
+                frames_count += 1
+        percent = int(evaluation_count / float(frames_count) * 100)
+        print frames_count, evaluation_count, evaluation_count / frames_count, percent
+        return str(percent)
+    
+    @cherrypy.expose
     def evaluate(self):
+        self.evaluation_data['detected'] = []
         output_path = 'frames'
         if os.path.exists(output_path):
             for root, dirs, files in os.walk(output_path):
@@ -110,12 +167,15 @@ class Home:
                         image = cv2.equalizeHist(image)
                         rects = self.detect(image)
                         img_out = image.copy()
+                        img_out = cv2.cvtColor(img_out, cv.CV_GRAY2RGB)
+                        success = len(rects) != 0
                         self.draw_rects(img_out, rects, (0, 255, 0))
-                        cv2.imwrite(file_name + 'out.jpg', img_out)
+                        success_string = str(success).lower()
+                        self.evaluation_data['detected'].append(success)
+                        cv2.imwrite(file_name[:-4] + '_' + success_string + '.jpg', img_out)
         else:
-            return "error" 
-               
-        return "evaluate"
+            return "error"   
+        return "evaluation"
 
     def draw_rects(self, img, rects, color):
         for x1, y1, x2, y2 in rects:
@@ -128,7 +188,7 @@ class Home:
         flags = cv.CV_HAAR_SCALE_IMAGE
         cascade_function = os.path.abspath(os.path.join('classifier', 'haarcascade_frontalface_alt_tree.xml'))
         cascade = cv2.CascadeClassifier(cascade_function)
-        rects = cascade.detectMultiScale(img, scaleFactor = scale_factor, minNeighbors = min_neighbors, minSize = min_size, flags = flags)
+        rects = cascade.detectMultiScale(img, scaleFactor=scale_factor, minNeighbors=min_neighbors, minSize=min_size, flags=flags)
         if len(rects) == 0:
             return []
         else:
