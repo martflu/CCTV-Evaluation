@@ -1,0 +1,10 @@
+.progress {
+    height: 40px;
+}
+
+.progress-bar-percent {
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 40px;
+    vertical-align: middle;
+}

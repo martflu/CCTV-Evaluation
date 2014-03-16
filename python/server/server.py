@@ -13,9 +13,11 @@ from decimal import Decimal
 from os import listdir
 from os.path import isfile, join
 import numpy
+from jinja2 import Template, Environment, FileSystemLoader
 
 
 file_path = os.getcwd()
+print file_path
 
 HTML_DIR = 'html'
 UPLOAD_DIR = 'upload'
@@ -28,25 +30,28 @@ class Home:
     conversion_thread = None
     evaluation_data = {}
     
+    env = Environment(loader=FileSystemLoader('html'))
+    
     @cherrypy.expose
     def index(self):
         return open(os.path.join(HTML_DIR, u'index.html'))
 
     @cherrypy.expose
     def upload(self, video_file):
-            self.upload_progress = 0
-            all_data = ''
-            size = 0
-            
-            while True:
-                data = video_file.file.read(10240)
-                all_data += data
-                if not data:
-                    break
-                size += len(data)
-                self.upload_progress = size
-            with open(os.path.join(UPLOAD_DIR, video_file.filename), 'wb') as f:
-                f.write(all_data)
+        self.evaluation_data['file_name'] = video_file.filename
+        self.upload_progress = 0
+        all_data = ''
+        size = 0
+        
+        while True:
+            data = video_file.file.read(10240)
+            all_data += data
+            if not data:
+                break
+            size += len(data)
+            self.upload_progress = size
+        with open(os.path.join(UPLOAD_DIR, video_file.filename), 'wb') as f:
+            f.write(all_data)
                 
     @cherrypy.expose
     def uploadprogress(self):
@@ -63,8 +68,7 @@ class Home:
 
  
     def get_video_length_seconds(self, input_path):
-        ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
-        process = subprocess.Popen([ffmpeg, '-i', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(["ffmpeg", '-i', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = process.communicate()
         matches = re.search(r"Duration:\s{1}(?P<hours>\d+?):(?P<minutes>\d+?):(?P<seconds>\d+\.\d+?),", stdout, re.DOTALL).groupdict()
         hours = Decimal(matches['hours'])
@@ -79,36 +83,35 @@ class Home:
     def get_video_format(self, input_path):
         import ConfigParser
         import StringIO
-        ffprobe = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffprobe.exe'))
-        process = subprocess.Popen([ffprobe, '-show_format', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(["ffprobe", '-show_format', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = process.communicate()
-        format_list = stdout.split('\r\n')
+        format_list = stdout.split('\n')
+        self.evaluation_data['video_format'] = {}
         for entry in format_list:
             try:
                 key, value = entry.split('=')
                 if len(entry.split('=')) == 2:
-                    self.evaluation_data[key] = value
-            except:
-                print
+                    self.evaluation_data['video_format'][key] = value
+            except Exception as e:
+                print e
         
     def get_stream_data(self, input_path):
         import ConfigParser
         import StringIO
-        ffprobe = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffprobe.exe'))
-        process = subprocess.Popen([ffprobe, '-show_streams', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(["ffprobe", '-show_streams', '-loglevel', 'quiet', input_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = process.communicate()
         streams = stdout.split('[/STREAM]')[0:-1]
         self.evaluation_data['streams'] = []
         for stream in streams:
-            stream_list = stream.split('\r\n')
+            stream_list = stream.split('\n')
             stream_data = {}
             for entry in stream_list:
                 try:
                     key, value = entry.split('=')
                     if len(entry.split('=')) == 2:
                         stream_data[key] = value
-                except:
-                    print
+                except Exception as e:
+                    print e
             self.evaluation_data['streams'].append(stream_data)
 
     def start_conversion(self, input_path):
@@ -121,8 +124,7 @@ class Home:
         input_path = os.path.abspath(input_path)
         output_path = os.path.abspath(output_path)
         
-        ffmpeg = os.path.abspath(os.path.join('ffmpeg', 'bin', 'ffmpeg.exe'))
-        process = subprocess.Popen([ffmpeg, '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%8d.png')], stdout=subprocess.PIPE)
+        process = subprocess.Popen(["ffmpeg", '-i', input_path, '-r', str(self.frames_per_second), os.path.join(output_path, 'frame-%8d.png')], stdout=subprocess.PIPE)
         process.wait()
         
     @cherrypy.expose
@@ -151,6 +153,9 @@ class Home:
             else:
                 frames_count += 1
         percent = int(evaluation_count / float(frames_count) * 100)
+        if percent > 99:
+            if self.evaluation_thread.isAlive():
+                percent -= 1
         return str(percent)
     
     @cherrypy.expose
@@ -169,47 +174,10 @@ class Home:
         
         output_path = 'frames'
         if os.path.exists(output_path):
-            for root, dirs, files in os.walk(output_path):
-                for file in files:
-                    file_name = os.path.join(root, file)
-                    if file.endswith(".png"):
-                        image = cv2.imread(file_name)
-                        image = cv2.cvtColor(image, cv.CV_BGR2GRAY)
-                        # image = cv2.equalizeHist(image) # this seems to not improve the results
-                        rects = self.detect(image)
-                        img_out = image.copy()
-                        img_out = cv2.cvtColor(img_out, cv.CV_GRAY2RGB)
-                        success = len(rects) != 0
-                        self.draw_rects(img_out, rects, (0, 255, 0))
-                        success_string = str(success).lower()
-                        cv2.imwrite(file_name[:-4] + '_' + success_string + '.png', img_out)
-                        
-                        image_min, image_mean, image_max = self.analyze_image(image)
-                        faces = len(rects)
-                        area = self.get_average_rect_area(rects)
-                        self.evaluation_data['all']['detected'].append(success)
-                        self.evaluation_data['all']['faces'].append(faces)
-                        self.evaluation_data['all']['area'].append(area)
-                        self.evaluation_data['all']['min'].append(image_min)
-                        self.evaluation_data['all']['mean'].append(image_mean)
-                        self.evaluation_data['all']['max'].append(image_max)
-                        if success:
-                            self.evaluation_data['found']['detected'].append(success)
-                            self.evaluation_data['found']['faces'].append(faces)
-                            self.evaluation_data['found']['area'].append(area)
-                            self.evaluation_data['found']['min'].append(image_min)
-                            self.evaluation_data['found']['mean'].append(image_mean)
-                            self.evaluation_data['found']['max'].append(image_max)
-                        else:
-                            self.evaluation_data['missed']['detected'].append(success)
-                            self.evaluation_data['missed']['faces'].append(faces)
-                            self.evaluation_data['missed']['area'].append(area)
-                            self.evaluation_data['missed']['min'].append(image_min)
-                            self.evaluation_data['missed']['mean'].append(image_mean)
-                            self.evaluation_data['missed']['max'].append(image_max)
+            self.evaluation_thread = Thread(target=self.evaluate_video, args=(output_path,))
+            self.evaluation_thread.start()
         else:
             return "error"
-        self.calculate_video_evaluation_data()
         return "evaluation"
 
     def analyze_image(self, image):
@@ -224,7 +192,46 @@ class Home:
                     image_max = image[y][x]
         image_mean = numpy.mean(image)
         return image_min, image_mean, image_max
-        
+
+    def evaluate_video(self, path):
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                file_name = os.path.join(root, file)
+                if file.endswith(".png"):
+                    image = cv2.imread(file_name)
+                    image = cv2.cvtColor(image, cv.CV_BGR2GRAY)
+                    rects = self.detect(image)
+                    img_out = image.copy()
+                    img_out = cv2.cvtColor(img_out, cv.CV_GRAY2RGB)
+                    success = len(rects) != 0
+                    self.draw_rects(img_out, rects, (0, 255, 0))
+                    success_string = str(success).lower()
+                    cv2.imwrite(file_name[:-4] + '_' + success_string + '.png', img_out)
+                    
+                    image_min, image_mean, image_max = self.analyze_image(image)
+                    faces = len(rects)
+                    area = self.get_average_rect_area(rects)
+                    self.evaluation_data['all']['detected'].append(success)
+                    self.evaluation_data['all']['faces'].append(faces)
+                    self.evaluation_data['all']['area'].append(area)
+                    self.evaluation_data['all']['min'].append(image_min)
+                    self.evaluation_data['all']['mean'].append(image_mean)
+                    self.evaluation_data['all']['max'].append(image_max)
+                    if success:
+                        self.evaluation_data['found']['detected'].append(success)
+                        self.evaluation_data['found']['faces'].append(faces)
+                        self.evaluation_data['found']['area'].append(area)
+                        self.evaluation_data['found']['min'].append(image_min)
+                        self.evaluation_data['found']['mean'].append(image_mean)
+                        self.evaluation_data['found']['max'].append(image_max)
+                    else:
+                        self.evaluation_data['missed']['detected'].append(success)
+                        self.evaluation_data['missed']['faces'].append(faces)
+                        self.evaluation_data['missed']['area'].append(area)
+                        self.evaluation_data['missed']['min'].append(image_min)
+                        self.evaluation_data['missed']['mean'].append(image_mean)
+                        self.evaluation_data['missed']['max'].append(image_max)
+        self.calculate_video_evaluation_data()
 
     def calculate_video_evaluation_data(self):
         f = 'found'
@@ -237,7 +244,9 @@ class Home:
             self.evaluation_data[key]['mean_min'] = numpy.mean(self.evaluation_data[key]['min'])
             self.evaluation_data[key]['mean_mean'] = numpy.mean(self.evaluation_data[key]['mean'])
             self.evaluation_data[key]['mean_max'] = numpy.mean(self.evaluation_data[key]['max'])
-        pprint(self.evaluation_data)
+        all = float(len(self.evaluation_data['all']['detected']))
+        self.evaluation_data['found']['percent'] = float("%.2f" % (len(self.evaluation_data['found']['detected']) / all * 100.0))
+        self.evaluation_data['missed']['percent'] = float("%.2f" % (len(self.evaluation_data['missed']['detected']) / all * 100.0))
      
     def draw_rects(self, img, rects, color):
         for x1, y1, x2, y2 in rects:
@@ -270,7 +279,13 @@ class Home:
         else:
             rects[:, 2:] += rects[:, :2]
             return rects
+    
+    @cherrypy.expose
+    def results(self):
         
+        template = self.env.get_template('results.html')
+        return template.render(data=self.evaluation_data)
+    
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 
 if __name__ == '__main__':

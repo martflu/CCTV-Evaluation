@@ -1,112 +1,99 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="en-US">
-	<head profile="http://www.w3.org/2005/10/profile">
-		<title>CCTV-Evaluation</title>
-		<link rel="icon" type="image/png" href="/static/img/favicon.ico">
-		<link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
-		<link href="/static/css/server.css" rel="stylesheet">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	</head>
-	<body>
-		<div class="navbar">
-			<div class="navbar-inner">
-				<a class="brand" href="/">CCTV-Evaluation</a>
-			</div>
-		</div>
-		<div class="container">
-			<div class="page-header">
-				<h1>This page helps you evaluate your CCTV footage <small>upload one of your videos to get started</small></h1>
-			</div>
-			<div class="row">
-				<div class="span4">
-					<form id="file_upload_form">
-						<div id="file_upload" class="fileupload fileupload-new" data-provides="fileupload">
-							<div class="input-append">
-								<div class="uneditable-input span3"><i class="icon-file fileupload-exists"></i> <span id="file_upload_name" class="fileupload-preview"></span></div>
-								<span class="btn btn-file">
-									<span class="fileupload-new">Select file</span>
-									<span class="fileupload-exists">Change</span><input id="video_file" type="file" accept="video/*" name="video_file"/>
-								</span>
-							</div>
-						</div>
-		        	</form>
-	        	</div>
-			</div>
-        	
-        	<div class="row">
-				<div class="span1">
-        			<button id="video_upload_button" class="btn btn-success fileupload-exists" disabled>Evaluate</button>
-	        	</div>
-	        	<div class="span2.5">
-					<div id="file_upload_error" class="alert alert-error" style="opacity: 0;">
-						<strong id="file_upload_error_text"></strong>
-					</div>	        		
-	        	</div>
-        	</div>
-        	<br>
-        	<table id="task_table" class="table table-condensed" style="display: none;">
-        		<thead>
-	        		<tr>
-					    <th width="5%">#</th>
-					    <th width="10%">task</th>
-					    <th>progress</th>
-	  				</tr>
-  				</thead>
-  				<tbody>
-	  				<tr>
-					    <td>
-					    	<span id="badge_upload" class="badge">1</span>
-				    	</td>
-					    <td>upload</td>
-					    <td>
-					    	<div id="progress_upload" class="progress progress-success">
-			        			<div id="progress_upload_bar" class="bar"></div>
-							</div>
-						</td>
-	  				</tr>
-	  				<tr>
-					    <td>
-					    	<span id="badge_conversion" class="badge">2</span>
-				    	</td>
-					    <td>convert</td>
-					    <td>
-					    	<div id="progress_conversion" class="progress progress-success">
-			        			<div id="progress_conversion_bar" class="bar"></div>
-							</div>
-						</td>
-	  				</tr>
-	  				<tr>
-					    <td>
-					    	<span id="badge_evaluation" class="badge">3</span>
-				    	</td>
-					    <td>evaluate</td>
-					    <td>
-					    	<div id="progress_evaluation" class="progress progress-success">
-			        			<div id="progress_evaluation_bar" class="bar"></div>
-							</div>
-						</td>
-	  				</tr>
-  				</tbody>
-    		</table>
-        	
-		</div>
+    <head profile="http://www.w3.org/2005/10/profile">
+        <title>CCTV-Evaluation</title>
+        <link rel="icon" type="image/png" href="/static/img/favicon.ico">
+        <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="/static/css/server.css" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <nav class="navbar navbar-default" role="navigation">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/">CCTV-Evaluation</a>
+            </div>
+        </nav>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="page-header">
+                        <h1 class="text-center">This page helps you evaluate your CCTV footage
+                        <br>
+                        <small>upload one of your videos to get started</small></h1>
+                    </div>
+                </div>
+            </div>
+            <div id="video_section">
+                <div class="row">
+                    <div class="col-md-4">
+                        <form id="file_upload_form" role="form">
+                            <div class="form-group">
+                                <div class="form-group">
+                                    <label for="exampleInputFile">File Selection</label>
+                                    <input id="video_file" type="file" accept="video/*" name="video_file"/>
+                                    <p class="help-block">
+                                        Select a short video clip taken with your CCTV-Camera.
+                                        <br>
+                                        Make sure that the face of the person is visible during the entire clip.
+                                    </p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <button id="video_upload_button" class="btn btn-success fileupload-exists" disabled>
+                            Evaluate
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <div id="file_upload_error" class="alert alert-error" style="opacity: 0;">
+                            <strong id="file_upload_error_text"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <table id="task_table" class="table table-condensed" style="display: none;">
+                <thead>
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="10%">task</th>
+                        <th>progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span id="label_upload" class="label">1</span></td>
+                        <td>upload</td>
+                        <td>
+                        <div id="progress_upload" class="progress">
+                            <div id="progress_upload_bar" class="progress-bar progress-bar-success" role="progressbar"></div>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td><span id="label_conversion" class="label">2</span></td>
+                        <td>convert</td>
+                        <td>
+                        <div id="progress_conversion" class="progress">
+                            <div id="progress_conversion_bar" class="progress-bar progress-bar-success" role="progressbar"></div>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td><span id="label_evaluation" class="label">3</span></td>
+                        <td>evaluate</td>
+                        <td>
+                        <div id="progress_evaluation" class="progress">
+                            <div id="progress_evaluation_bar" class="progress-bar progress-bar-success" role="progressbar"></div>
+                        </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-		<div class="navbar navbar-fixed-bottom">
-			<div class="navbar-inner console-bar">
-				 
-				<div class="pull-right">
-		        	<a href="#">
-						<img class="terminal-icon" id="terminal_icon" src="/static/img/terminal.png" alt="terminal">		        			
-					</a>
-		        </div>
-		        
-			</div>
-			
-        	<pre id="console" class="pre-scrollable horizontal-scroll" style="display: none;"></pre>
-		</div>
-
-		<script src="http://code.jquery.com/jquery.js"></script>
-		<script src="/static/bootstrap/js/bootstrap.min.js"></script>
-		<script src="/static/js/server.js"></script>
-	</body>
+        <script src="http://code.jquery.com/jquery.js"></script>
+        <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+        <script src="/static/js/server.js"></script>
+    </body>
 </html>

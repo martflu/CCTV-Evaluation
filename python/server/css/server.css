@@ -1,43 +1,9 @@
-img {
-	opacity: 0.4;
-	filter: alpha(opacity=40);
-	width: 15px;
-	height: 15px;
-}
-
-.console-bar {
-	height: 23px;
-	min-height: 23px;
-}
-
-.terminal-icon {
-	padding-right: 10px;
-}
-.horizontal-scroll {
-	overflow: auto;
-	word-wrap: normal;
-	white-space: pre;
-	height: 215px;
-}
-
 #video_upload_button {
 	height: 38px;
 	min-height: 38px;
 	max-height: 38px;
 }
 
-.log {
-	line-height: 5px;
-}
-
 .progress {
 	margin-bottom: 0px;
 }
-
-.progress .bar {
-    -webkit-transition: none;
-    -moz-transition: none;
-    -ms-transition: none;
-    -o-transition: none;
-    transition: none;
-}​
