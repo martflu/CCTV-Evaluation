@@ -8,3 +8,34 @@
     line-height: 40px;
     vertical-align: middle;
 }
+
+.panel-heading {
+    cursor: pointer;
+}
+
+.panel-body {
+    display: none;
+}
+
+.glyphicon {
+    margin-right: 20px;
+}
+
+#carousel-example-generic {
+}
+
+#frame_data {
+}
+
+.progress-bar.active {
+    border-style: solid;
+    border-width: 2px;
+    border-color: #444444;
+}
+
+.progress_bar_selection:hover {
+    cursor: pointer;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #888888;
+}

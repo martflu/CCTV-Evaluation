@@ -19,21 +19,89 @@
                     <div class="page-header">
                         <h1 class="text-center">Evaluation Results
                         <br>
-                        <small>for {{ data.file_name }}</small></h1>
+                        <small>for {{ file_name }}</small></h1>
                     </div>
-                </div>
-            </div>
-            <div class="progress">
-                <div class="progress-bar progress-bar-success" style="width: {{ data.found.percent }}%">
-                    <span class="progress-bar-percent">{{ data.found.percent }}%</span>
-                </div>
-                <div class="progress-bar progress-bar-danger" style="width: {{ data.missed.percent }}%">
-                    <span class="progress-bar-percent">{{ data.missed.percent }}%</span>
                 </div>
             </div>
             <div class="panel panel-primary">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Video Format</h3>
+                    <h3 class="panel-title"><span class="glyphicon glyphicon-chevron-right"></span>Performance</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-success" style="width: {{ found_percent }}%">
+                            <span class="progress-bar-percent">{{ found_percent }}%</span>
+                        </div>
+                        <div class="progress-bar progress-bar-danger" style="width: {{ missed_percent }}%">
+                            <span class="progress-bar-percent">{{ missed_percent }}%</span>
+                        </div>
+                    </div>
+                    <div class="well">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div id="carousel-example-generic" class="carousel slide">
+                                    <div class="carousel-inner">
+                                        {% for image_file_name in image_filenames %}
+                                            <div class="item {% if loop.index0 == 0 %}active{% endif %}" index="{{ loop.index0 }}">
+                                                <img src="/{{ image_file_name }}" alt="some alt text">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <a class="left carousel-control" href="#carousel-example-generic" data-slide="prev"> <span class="glyphicon glyphicon-chevron-left"></span> </a>
+                                    <a class="right carousel-control" href="#carousel-example-generic" data-slide="next"> <span class="glyphicon glyphicon-chevron-right"></span> </a>
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <table id="frame_data" class="table table-bordered">
+                                    <tr>
+                                        <th width="20%">Key</th>
+                                        <th>Value</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Face detected</td>
+                                        <td id="detected"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>No. detected faces</td>
+                                        <td id="faces"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Face area</td>
+                                        <td id="area"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Min brightness</td>
+                                        <td id="min"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mean brightness</td>
+                                        <td id="mean"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Max brightness</td>
+                                        <td id="max"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div id="progress_selection" class="progress">
+                        {% for value in detected_list %}
+                        <div
+                        class="progress_bar_selection progress-bar {% if loop.index0 == 0 %}active{% endif %} {% if value==True %}progress-bar-success{% else %}progress-bar-danger{% endif %}"
+                        style="width: {{ frame_percent }}%"
+                        index="{{ loop.index0 }}"
+                        ></div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><span class="glyphicon glyphicon-chevron-right"></span>Video Format</h3>
                 </div>
                 <div class="panel-body">
                     <table class="table table-bordered">
@@ -41,7 +109,7 @@
                             <th width="20%">Key</th>
                             <th>Value</th>
                         </tr>
-                        {% for key, value in data.video_format.items() %}
+                        {% for key, value in video_format.items() %}
                         <tr>
                             <td>{{ key }}</td>
                             <td>{{ value }}</td>
@@ -53,10 +121,10 @@
             </div>
             <div class="panel panel-primary">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Streams</h3>
+                    <h3 class="panel-title"><span class="glyphicon glyphicon-chevron-right"></span>Streams</h3>
                 </div>
                 <div class="panel-body">
-                    {% for stream in data.streams %}
+                    {% for stream in streams %}
                     <table class="table table-bordered">
                         <tr>
                             <th width="20%">Key</th>
@@ -73,12 +141,18 @@
                     {% endfor %}
                 </div>
             </div>
-
-            {{ data }}
         </div>
 
         <script src="http://code.jquery.com/jquery.js"></script>
         <script src="/static/bootstrap/js/bootstrap.min.js"></script>
-        <script src="/static/js/server.js"></script>
+        <script>
+            var detected = eval( "{{ detected_string }}" );
+            var faces = eval( "{{ faces_string }}" );
+            var area = eval( "{{ area_string }}" );
+            var min = eval( "{{ min_string }}" );
+            var mean = eval( "{{ mean_string }}" );
+            var max = eval( "{{ max_string }}" );
+        </script>
+        <script src="/static/js/results.js"></script>
     </body>
 </html>

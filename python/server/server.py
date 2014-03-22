@@ -195,6 +195,8 @@ class Home:
 
     def evaluate_video(self, path):
         for root, dirs, files in os.walk(path):
+            self.evaluation_data['image_file_names'] = []
+            files.sort();
             for file in files:
                 file_name = os.path.join(root, file)
                 if file.endswith(".png"):
@@ -206,7 +208,9 @@ class Home:
                     success = len(rects) != 0
                     self.draw_rects(img_out, rects, (0, 255, 0))
                     success_string = str(success).lower()
-                    cv2.imwrite(file_name[:-4] + '_' + success_string + '.png', img_out)
+                    image_file_name = file_name[:-4] + '_' + success_string + '.png'
+                    self.evaluation_data['image_file_names'].append(image_file_name)
+                    cv2.imwrite(image_file_name, img_out)
                     
                     image_min, image_mean, image_max = self.analyze_image(image)
                     faces = len(rects)
@@ -214,9 +218,9 @@ class Home:
                     self.evaluation_data['all']['detected'].append(success)
                     self.evaluation_data['all']['faces'].append(faces)
                     self.evaluation_data['all']['area'].append(area)
-                    self.evaluation_data['all']['min'].append(image_min)
-                    self.evaluation_data['all']['mean'].append(image_mean)
-                    self.evaluation_data['all']['max'].append(image_max)
+                    self.evaluation_data['all']['min'].append(int(image_min))
+                    self.evaluation_data['all']['mean'].append(int(image_mean))
+                    self.evaluation_data['all']['max'].append(int(image_max))
                     if success:
                         self.evaluation_data['found']['detected'].append(success)
                         self.evaluation_data['found']['faces'].append(faces)
@@ -247,6 +251,9 @@ class Home:
         all = float(len(self.evaluation_data['all']['detected']))
         self.evaluation_data['found']['percent'] = float("%.2f" % (len(self.evaluation_data['found']['detected']) / all * 100.0))
         self.evaluation_data['missed']['percent'] = float("%.2f" % (len(self.evaluation_data['missed']['detected']) / all * 100.0))
+        self.evaluation_data['frame_amount'] = len(self.evaluation_data['all']['detected'])
+        self.evaluation_data['frame_percent'] = float(100) / float(self.evaluation_data['frame_amount'])
+        
      
     def draw_rects(self, img, rects, color):
         for x1, y1, x2, y2 in rects:
@@ -282,9 +289,25 @@ class Home:
     
     @cherrypy.expose
     def results(self):
-        
         template = self.env.get_template('results.html')
-        return template.render(data=self.evaluation_data)
+        return template.render(
+                               file_name=self.evaluation_data['file_name'],
+                               found_percent = self.evaluation_data['found']['percent'],
+                               missed_percent = self.evaluation_data['missed']['percent'],
+                               frame_percent = self.evaluation_data['frame_percent'],
+                               image_filenames = self.evaluation_data['image_file_names'],
+                               detected_list = self.evaluation_data['all']['detected'],
+                               detected_string = json.dumps(self.evaluation_data['all']['detected']),
+                               faces_string = json.dumps(self.evaluation_data['all']['faces']),
+                               area_string = json.dumps(self.evaluation_data['all']['area']),
+                               min_string = json.dumps(self.evaluation_data['all']['min']),
+                               mean_string = json.dumps(self.evaluation_data['all']['mean']),
+                               max_string = json.dumps(self.evaluation_data['all']['max']),
+                               
+                               
+                               video_format = self.evaluation_data['video_format'],
+                               streams = self.evaluation_data['streams']
+                               )
     
 serverconf = os.path.join(os.path.dirname(__file__), 'server.conf')
 
@@ -292,13 +315,16 @@ if __name__ == '__main__':
     cherrypy.server.socket_host = "127.0.0.1"
     cherrypy.server.socket_port = 8080
     config = {"/static":
-                        {"tools.staticdir.on": True,
-                         "tools.staticdir.dir": file_path,
-                        },
-                      "/img":
-                        {"tools.staticdir.on": True,
-                        "tools.staticdir.dir": file_path + "/img"}
-                    }
+                {"tools.staticdir.on": True,
+                 "tools.staticdir.dir": file_path,
+                },
+              "/img":
+                {"tools.staticdir.on": True,
+                "tools.staticdir.dir": file_path + "/img"},
+              "/frames":
+                {"tools.staticdir.on": True,
+                "tools.staticdir.dir": file_path + "/frames"}
+            }
 
     cherrypy.tree.mount(Home(), "/", config=config)
     cherrypy.engine.start()
