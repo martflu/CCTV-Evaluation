@@ -182,6 +182,9 @@ class Home:
 
     def analyze_image(self, image):
         height, width = image.shape
+        if not 'height' in self.evaluation_data:
+            self.evaluation_data['height'] = height
+            self.evaluation_data['width'] = width
         image_min = image[0][0]
         image_max = image[0][0]
         for y in range(0, height):

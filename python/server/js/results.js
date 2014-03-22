@@ -21,6 +21,8 @@ function start() {
         var progress = $('#progress_selection');
         var active_progress = $($('#progress_selection').children()[index]);
         active_progress.addClass('active');
+        $('#carousel-example-generic').carousel('pause');
+        update_frame_info(index);
     });
     update_frame_info(0);
 }
