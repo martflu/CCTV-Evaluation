@@ -60,7 +60,8 @@ function update_frame_info(index) {
     }
     $('#detected').html(detected_string);
     $('#faces').html(faces[index]);
-    $('#area').html(area[index]);
+    var width = Math.sqrt(area[index]).toFixed();
+    $('#area').html(area[index] + " pixels (" + width + "x" + width + ")");
     $('#min').html(min[index]);
     $('#mean').html(mean[index]);
     $('#max').html(max[index]);

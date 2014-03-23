@@ -75,11 +75,6 @@ function start() {
         e.preventDefault();
     });
 
-    $('#terminal_icon').click(function() {
-        $('#console').slideToggle();
-        $('#console').scrollTop($('#console')[0].scrollHeight);
-    });
-
     function get_conversion_progress() {
         $.get("/conversionprogress", function(data) {
             var percent = parseFloat(data);

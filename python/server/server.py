@@ -38,6 +38,7 @@ class Home:
 
     @cherrypy.expose
     def upload(self, video_file):
+        self.evaluation_data = {}
         self.evaluation_data['file_name'] = video_file.filename
         self.upload_progress = 0
         all_data = ''
@@ -109,6 +110,10 @@ class Home:
                 try:
                     key, value = entry.split('=')
                     if len(entry.split('=')) == 2:
+                        if key == 'height':
+                            self.evaluation_data['height'] = int(value)
+                        if key == 'width':
+                            self.evaluation_data['width'] = int(value)
                         stream_data[key] = value
                 except Exception as e:
                     print e
@@ -182,9 +187,6 @@ class Home:
 
     def analyze_image(self, image):
         height, width = image.shape
-        if not 'height' in self.evaluation_data:
-            self.evaluation_data['height'] = height
-            self.evaluation_data['width'] = width
         image_min = image[0][0]
         image_max = image[0][0]
         for y in range(0, height):
@@ -231,32 +233,87 @@ class Home:
                         self.evaluation_data['found']['min'].append(image_min)
                         self.evaluation_data['found']['mean'].append(image_mean)
                         self.evaluation_data['found']['max'].append(image_max)
-                    else:
-                        self.evaluation_data['missed']['detected'].append(success)
-                        self.evaluation_data['missed']['faces'].append(faces)
-                        self.evaluation_data['missed']['area'].append(area)
-                        self.evaluation_data['missed']['min'].append(image_min)
-                        self.evaluation_data['missed']['mean'].append(image_mean)
-                        self.evaluation_data['missed']['max'].append(image_max)
         self.calculate_video_evaluation_data()
 
     def calculate_video_evaluation_data(self):
         f = 'found'
-        m = 'missed'
         a = 'all'
-        for key in [f, m, a]:
+        for key in [f, a]:
             self.evaluation_data[key]['mean_detected'] = numpy.mean(self.evaluation_data[key]['detected'])
             self.evaluation_data[key]['mean_faces'] = numpy.mean(self.evaluation_data[key]['faces'])
             self.evaluation_data[key]['mean_area'] = numpy.mean(self.evaluation_data[key]['area'])
             self.evaluation_data[key]['mean_min'] = numpy.mean(self.evaluation_data[key]['min'])
             self.evaluation_data[key]['mean_mean'] = numpy.mean(self.evaluation_data[key]['mean'])
             self.evaluation_data[key]['mean_max'] = numpy.mean(self.evaluation_data[key]['max'])
-        all = float(len(self.evaluation_data['all']['detected']))
-        self.evaluation_data['found']['percent'] = float("%.2f" % (len(self.evaluation_data['found']['detected']) / all * 100.0))
-        self.evaluation_data['missed']['percent'] = float("%.2f" % (len(self.evaluation_data['missed']['detected']) / all * 100.0))
+        frames = float(len(self.evaluation_data['all']['detected']))
+        self.evaluation_data['found']['percent'] = float("%.2f" % (len(self.evaluation_data['found']['detected']) / frames * 100.0))
         self.evaluation_data['frame_amount'] = len(self.evaluation_data['all']['detected'])
         self.evaluation_data['frame_percent'] = float(100) / float(self.evaluation_data['frame_amount'])
+        self.generate_suggestions()
         
+        
+    def generate_suggestions(self):
+        self.evaluation_data['suggestions'] = {}
+        x = self.evaluation_data['width']
+        y = self.evaluation_data['height']
+        if x < 720 or y < 480:
+            self.evaluation_data['suggestions']['resolution'] = 'bad'
+        else:
+            self.evaluation_data['suggestions']['resolution'] = 'good'
+        
+        if len(self.evaluation_data['found']) == 0:
+            self.evaluation_data['suggestions']['face_area'] = 'none'
+        else:
+            face_width = numpy.sqrt(self.evaluation_data['found']['mean_area'])
+            if face_width <= 10:
+                self.evaluation_data['suggestions']['face_area'] = 'very bad'
+            elif face_width > 10 and face_width <= 40:
+                self.evaluation_data['suggestions']['face_area'] = 'bad'
+            elif face_width > 40 and face_width <= 60:
+                self.evaluation_data['suggestions']['face_area'] = 'ok'
+            elif face_width > 60 and face_width <= 80:
+                self.evaluation_data['suggestions']['face_area'] = 'good'
+            elif face_width > 80:
+                self.evaluation_data['suggestions']['face_area'] = 'very good'
+                
+        self.evaluation_data['suggestions']['face_width'] = face_width
+
+        min = self.evaluation_data['all']['mean_min']
+        mean = self.evaluation_data['all']['mean_mean']
+        max = self.evaluation_data['all']['mean_max']
+        
+        self.evaluation_data['suggestions']['min'] = min
+        self.evaluation_data['suggestions']['mean'] = mean 
+        self.evaluation_data['suggestions']['max'] = max
+        
+        deviation = numpy.abs(mean - 128)
+        
+        self.evaluation_data['suggestions']['deviation'] = deviation
+        
+        if deviation <= 10:
+            self.evaluation_data['suggestions']['brightness'] = 'very good'
+        elif deviation > 20 and deviation <= 40:
+            self.evaluation_data['suggestions']['brightness'] = 'good'
+        elif deviation > 40 and deviation <= 60:
+            self.evaluation_data['suggestions']['brightness'] = 'ok'
+        elif deviation > 60 and deviation <= 80:
+            self.evaluation_data['suggestions']['brightness'] = 'bad'
+        elif deviation > 80:
+            self.evaluation_data['suggestions']['brightness'] = 'very bad'
+        
+        offset = int(min) + abs((int(max) - 255))
+        self.evaluation_data['suggestions']['offset'] = offset
+        
+        if offset == 0:
+            self.evaluation_data['suggestions']['contrast'] = 'very good'
+        elif offset > 0 and offset <= 5:
+            self.evaluation_data['suggestions']['contrast'] = 'good'
+        elif offset > 5 and offset <= 20:
+            self.evaluation_data['suggestions']['contrast'] = 'ok'
+        elif offset > 20 and offset <= 50:
+            self.evaluation_data['suggestions']['contrast'] = 'bad'
+        elif offset > 50:
+            self.evaluation_data['suggestions']['contrast'] = 'very bad'
      
     def draw_rects(self, img, rects, color):
         for x1, y1, x2, y2 in rects:
@@ -279,6 +336,7 @@ class Home:
     def detect(self, img):
         scale_factor = 1.3
         min_neighbors = 3
+        min_width = int(self.evaluation_data['width']) / 20
         min_size = (20, 20)
         flags = cv.CV_HAAR_SCALE_IMAGE
         cascade_function = os.path.abspath(os.path.join('classifier', 'haarcascade_frontalface_alt_tree.xml'))
@@ -296,7 +354,6 @@ class Home:
         return template.render(
                                file_name=self.evaluation_data['file_name'],
                                found_percent = self.evaluation_data['found']['percent'],
-                               missed_percent = self.evaluation_data['missed']['percent'],
                                frame_percent = self.evaluation_data['frame_percent'],
                                image_filenames = self.evaluation_data['image_file_names'],
                                detected_list = self.evaluation_data['all']['detected'],
@@ -307,6 +364,9 @@ class Home:
                                mean_string = json.dumps(self.evaluation_data['all']['mean']),
                                max_string = json.dumps(self.evaluation_data['all']['max']),
                                
+                               suggestions = self.evaluation_data['suggestions'],
+                               height = int(self.evaluation_data['height']),
+                               width = int(self.evaluation_data['width']),
                                
                                video_format = self.evaluation_data['video_format'],
                                streams = self.evaluation_data['streams']

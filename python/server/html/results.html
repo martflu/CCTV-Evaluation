@@ -19,12 +19,29 @@
                     <div class="page-header">
                         <h1 class="text-center">Evaluation Results
                         <br>
-                        <small>for {{ file_name }}</small></h1>
+                        <small>for '{{ file_name }}'</small></h1>
                     </div>
                 </div>
             </div>
 
             <div class="well">
+                <div class="row">
+                    <div class="col-md-12">
+                        {% if found_percent <= 50 %}
+                        <p class="lead text-center text-danger">
+                            Unfortunately, face detection was only succesfull during <strong>{{ found_percent }}%</strong> of your video.
+                        </p>
+                        {% elif found_percent > 50 and found_percent <= 70 %}
+                        <p class="lead text-center text-warning">
+                            face detection was succesfull during <strong>{{ found_percent }}%</strong> of your video.
+                        </p>
+                        {% else %}
+                        <p class="lead text-center text-success">
+                            Congratulations, face detection was succesfull during <strong>{{ found_percent }}%</strong> of your video.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-5">
                         <div id="carousel-example-generic" class="carousel slide">
@@ -75,26 +92,22 @@
                 <br>
                 <div class="row">
                     <div class="col-md-12">
+                        {% set progress = frame_percent * detected_list|count %}
                         <div id="progress_selection" class="progress">
                             {% for value in detected_list %}
-                            <div
-                            class="progress_bar_selection progress-bar {% if loop.index0 == 0 %}active{% endif %} {% if value==True %}progress-bar-success{% else %}progress-bar-danger{% endif %}"
+                            <div class="progress_bar_selection progress-bar
+                            {% if loop.index0 == 0 %}
+                            active
+                            {% endif %}
+                            {% if value==True %}
+                            progress-bar-success
+                            {% else %}
+                            progress-bar-danger
+                            {% endif %}"
                             style="width: {{ frame_percent }}%"
                             index="{{ loop.index0 }}"
                             ></div>
                             {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-success" style="width: {{ found_percent }}%">
-                                <span class="progress-bar-percent">{{ found_percent }}%</span>
-                            </div>
-                            <div class="progress-bar progress-bar-danger" style="width: {{ missed_percent }}%">
-                                <span class="progress-bar-percent">{{ missed_percent }}%</span>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -105,7 +118,89 @@
                     <h3 class="panel-title"><span class="glyphicon glyphicon-chevron-right"></span>Suggestions for improvement</h3>
                 </div>
                 <div class="panel-body">
+                    {% if suggestions.resolution == 'bad' %}
+                    {% set class = "text-danger" %}
+                    {% else %}
+                    {% set class = "text-success" %}
+                    {% endif %}
+                    <h3 class="{{class}}">Resolution</h3>
+                    <p>
+                        The resolution of your video was <strong class="{{class}}">{{ suggestions.resolution }}</strong>.
+                        With <strong class="{{class}}">{{ width }} x {{ height }} pixels</strong>,
+                        {% if suggestions.resolution == 'bad' %}
+                        you should think about using a camera that supports a higher resolution.
+                        {% else %}
+                        your camera should be adequate for both face detection and face recognition.
+                        {% endif %}
+                        The minimum resolution of D1 (720 x 480 pixels) is only a recommendation. Note that this resolution should be native.
+                        the performance will not improve by resizing the video resolution after recording. With lower resolution cameras there is also a higher
+                        risk of optical distortions.
+                    </p>
 
+                    {% if suggestions.face_area == 'none' or suggestions.face_area == 'very bad' or suggestions.face_area == 'bad' %}
+                    {% set class = "text-danger" %}
+                    {% elif suggestions.face_area == 'ok' %}
+                    {% set class = "text-warning" %}
+                    {% else %}
+                    {% set class = "text-success" %}
+                    {% endif %}
+                    <h3 class="{{class}}">Face size</h3>
+                    <p>
+                        {% if suggestions.face_area == 'none' %}
+                        There was no face found in your video.
+                        {% else %}
+                        The average (mean) area of the detected faces in your video contains <strong class="{{class}}"> {{ (suggestions.face_width * suggestions.face_width)|int }}
+                        pixels</strong>. An important criterion for face detection and recognition is the horizontal pixels for the face in the image. In your
+                        video, the average face width was <strong class="{{class}}">{{ suggestions.face_width|int }} pixels</strong>,
+                        which is <strong class="{{class}}">{{ suggestions.face_area }}</strong> for face recognition.
+                        {% endif %}
+                        The performance of face recognition depends not only on the video resolution, but also on the distance of the face to the camera.
+                        Always try to position the camera in a location that maximizes the chance of the face to be completely visible in the center of the
+                        image. In general only a frontal view of the face will be useful for face recognition.
+                    </p>
+                    
+                    {% if suggestions.contrast == 'very bad' or suggestions.contrast == 'bad' %}
+                    {% set class = "text-danger" %}
+                    {% elif suggestions.contrast == 'ok' %}
+                    {% set class = "text-warning" %}
+                    {% else %}
+                    {% set class = "text-success" %}
+                    {% endif %}
+                    <h3 class="{{class}}">Contrast</h3>
+                    <p>
+                        The average contrast of your video seems to be <strong class="{{class}}">{{ suggestions.contrast }}</strong>. This estimation is
+                        based on the average brightness spectrum of the video. It is calculated as an offset to the highest possible spectrum (256). The
+                        offset for your video was <strong class="{{class}}">{{ suggestions.offset }}</strong>. A bad contrast is an indication of poor
+                        lighting conditions. This can be either, too bright or to dark.
+                    </p>
+                    
+                    {% if suggestions.brightness == 'very bad' or suggestions.brightness == 'bad' %}
+                    {% set class = "text-danger" %}
+                    {% set emphasis = "definitely too" %}
+                    {% elif suggestions.brightness == 'ok' %}
+                    {% set class = "text-warning" %}
+                    {% set emphasis = "a little" %}
+                    {% else %}
+                    {% set class = "text-success" %}
+                    {% set emphasis = "slightly" %}
+                    {% endif %}
+                    <h3 class="{{class}}">Brightness</h3>
+                    <p>
+                        The average brightness of your video seems to be <strong class="{{class}}">{{ suggestions.brightness }}</strong>. This estimation is
+                        based on deviation of the mean brightness from the middle of the spectrum (128). The deviation for your video is approximately
+                        <strong class="{{class}}">{{ suggestions.deviation|int }}</strong>.
+                        {% if suggestions.mean|int > 128 %}
+                        Your image is <strong class="{{class}}">{{ emphasis }} too bright</strong>.
+                        {% else %}
+                        Your image is <strong class="{{class}}">{{ emphasis }} too dark</strong>.
+                        {% endif %}
+                        
+                        Try to setup equally distributed lighting conditions that minimize
+                        shadows within the face region. Glares on glasses, jewelry or face skin should also be avoided. Always avoid backlit situations that
+                        will cause the face to be too dark in contrast to the background.
+                    </p>
+                    
+                    
                 </div>
             </div>
             <div class="panel panel-info">
