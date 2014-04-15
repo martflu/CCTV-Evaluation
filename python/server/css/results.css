@@ -44,3 +44,12 @@ p {
     border-width: 1px;
     border-color: #888888;
 }
+
+
+
+@media print
+{
+    .panel-body { display: block; }
+    #non-printable { display: none; }
+    #printable { display: block; }
+}
